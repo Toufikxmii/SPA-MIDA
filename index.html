@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام تسجيل حضور العمال</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            direction: rtl;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            margin-top: 20px;
+            display: inline-block;
+            text-align: right;
+        }
+        label {
+            margin-top: 10px;
+            display: block;
+        }
+        input[type="text"], input[type="number"], select, textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .worker-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        .worker-row label {
+            width: 100px;
+        }
+        .worker-row input[type="radio"] {
+            margin-right: 10px;
+        }
+        .worker-row input[type="time"] {
+            width: auto;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+            color: green;
+        }
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- الصفحة الأولى -->
+    <div id="page1" class="page active">
+        <h1>اختيار التاريخ</h1>
+        <label>اختر اليوم والشهر والسنة:</label>
+        <input type="date" id="selectedDate" required><br>
+        <label>تاريخ اليوم:</label>
+        <input type="text" id="todayDate" readonly><br>
+        <button onclick="navigateToPage('page2')">التالي</button>
+    </div>
+
+    <!-- الصفحة الثانية -->
+    <div id="page2" class="page">
+        <h1>أسماء العمال</h1>
+        <label for="numWorkers">عدد العمال:</label>
+        <input type="number" id="numWorkers" min="1" required><br>
+        <button onclick="generateWorkerInputs()">إضافة العمال</button>
+        <div id="workersContainer"></div>
+        <button id="nextButton" style="display: none;" onclick="navigateToPage('page3')">التالي</button>
+    </div>
+
+    <!-- الصفحة الثالثة -->
+    <div id="page3" class="page">
+        <h1>طبيعة العمل</h1>
+        <div id="workDetailsContainer"></div>
+        <button onclick="saveAttendance()">حفظ القائمة</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // عرض تاريخ اليوم
+        const today = new Date();
+        const todayDate = document.getElementById('todayDate');
+        todayDate.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+        // التنقل بين الصفحات
+        function navigateToPage(pageId) {
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        // إنشاء خانات أسماء العمال
+        function generateWorkerInputs() {
+            const numWorkers = document.getElementById('numWorkers').value;
+            const workersContainer = document.getElementById('workersContainer');
+            workersContainer.innerHTML = '';
+            for (let i = 1; i <= numWorkers; i++) {
+                const workerRow = document.createElement('div');
+                workerRow.className = 'worker-row';
+                workerRow.innerHTML = `
+                    <label for="workerName${i}">اسم العامل ${i}:</label>
+                    <input type="text" id="workerName${i}" required>
+                    <label>الحالة:</label>
+                    <input type="radio" name="status${i}" value="حاضر" required> حاضر
+                    <input type="radio" name="status${i}" value="غائب" required> غائب
+                `;
+                workersContainer.appendChild(workerRow);
+            }
+            document.getElementById('nextButton').style.display = 'inline-block';
+        }
+
+        // انتقال إلى الصفحة الثالثة وإنشاء خانات تفاصيل العمل للعمال الحاضرين فقط
+        function navigateToPage(pageId) {
+            const workersContainer = document.getElementById('workersContainer');
+            const workDetailsContainer = document.getElementById('workDetailsContainer');
+            workDetailsContainer.innerHTML = '';
+
+            const workersData = [];
+            workersContainer.querySelectorAll('.worker-row').forEach((row, index) => {
+                const workerName = row.querySelector(`#workerName${index + 1}`).value;
+                const status = row.querySelector(`input[name="status${index + 1}"]:checked`).value;
+
+                if (status === 'حاضر') {
+                    workersData.push(workerName);
+
+                    const workDetailRow = document.createElement('div');
+                    workDetailRow.className = 'worker-row';
+                    workDetailRow.innerHTML = `
+                        <label for="workType${index + 1}">العامل ${workerName}:</label>
+                        <label for="timeIn${index + 1}">توقيت الدخول:</label>
+                        <input type="time" id="timeIn${index + 1}">
+                        <label for="timeOut${index + 1}">توقيت الخروج:</label>
+                        <input type="time" id="timeOut${index + 1}">
+                        <label for="workType${index + 1}">طبيعة العمل:</label>
+                        <input type="text" id="workType${index + 1}">
+                    `;
+                    workDetailsContainer.appendChild(workDetailRow);
+                }
+            });
+
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        // حفظ البيانات وإرسالها إلى Google Sheets
+        function saveAttendance() {
+            const workDetailsContainer = document.getElementById('workDetailsContainer');
+            let workersData = [];
+
+            workDetailsContainer.querySelectorAll('.worker-row').forEach(row => {
+                const workerName = row.querySelector('label').textContent.split(':')[0];
+                const timeIn = row.querySelector('#timeIn').value;
+                const timeOut = row.querySelector('#timeOut').value;
+                const workType = row.querySelector('#workType').value;
+
+                workersData.push({
+                    name: workerName,
+                    timeIn: timeIn,
+                    timeOut: timeOut,
+                    workType: workType
+                });
+            });
+
+            // URL الخاص بـ Google Sheets API
+            const googleSheetsUrl = 'https://script.google.com/macros/s/YOUR_GOOGLE_SHEETS_URL/exec';
+
+            // إرسال البيانات إلى Google Sheets باستخدام Fetch API
+            fetch(googleSheetsUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(workersData)
+            })
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('result').textContent = 'تم إرسال البيانات إلى Google Sheets بنجاح!';
+            })
+            .catch(error => {
+                document.getElementById('result').textContent = 'حدث خطأ أثناء إرسال البيانات.';
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body>
+</html>
